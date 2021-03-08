@@ -1,0 +1,2 @@
+paste <(awk '{if ($1 < $0) sum1+=$2;};{if ($1 > $0) sum2+=$2;}; END{print "Ab2 (ttZ) = "(sum2-sum1)/(sum1+sum2);}' b2_$0.dat) <(awk '{if ($1 < $0) sum1+=$2;};{if ($1 > $0) sum2+=$2;}; END{print "Ab4 (ttZ) = "(sum2-sum1)/(sum1+sum2);}' b4_$0.dat)
+paste <(awk '{if ($1 < $0) sum1+=$3;};{if ($1 > $0) sum2+=$3;}; END{print "Ab2 (lab) = "(sum2-sum1)/(sum1+sum2);}' b2_$0.dat) <(awk '{if ($1 < $0) sum1+=$3;};{if ($1 > $0) sum2+=$3;}; END{print "Ab4 (lab) = "(sum2-sum1)/(sum1+sum2);}' b4_$0.dat)
