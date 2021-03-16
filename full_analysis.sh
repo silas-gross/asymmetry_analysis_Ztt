@@ -10,7 +10,15 @@ done
 
 for data in $held_runs 
 do
-	./asymmetrySilas.sh -9 9 $data > results_$data.txt
+	cd ~/ctG_runs 
+	file1=$data'/summary.txt'
+	grep -A0 "section:"  $file1 >~/mtG_data_runs_bash_script/temp1.txt
+	file1=`ls ~/ctG_runs/$data/run_*`
+	grep -A0 "ctG" $file1 >~/mtG_data_runs_bash_script/temp2.txt 
+	cd ~/mtG_data_runs_bash_script
+	./asymmetrySilas.sh -9 9 $data > tresults.txt
+	paste temp1.txt temp2.txt tresults.txt > results_$data.txt 
+	rm temp1.txt temp2.txt tresults.txt
 done
 sudo rm ~/ctG_runs/*.dat
 	#implement the asymmetry analysis
