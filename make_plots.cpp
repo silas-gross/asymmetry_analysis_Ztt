@@ -19,40 +19,63 @@ std::pair< std::vector<float>, std::vector < std::vector<float> > > get_vals_of_
 	std::vector<float> datapts(3); //point around which we take the asymm, b4 at ttZ, b4 at lab
 	std::vector < std::vector<float> > data;
 	std::vector<float> fixed (2);
-	std::fstream f; 
+	std::ifstream f; 
 	f.open(name);
 	while(f.is_open() && !f.eof())
 	{
+		try{
 		while(std::getline(f, line))
 		{
 			std::stringstream part_vals(line), subpart;
 			std::string part, sub;
-			while (std::getline(part_vals, part, ' '))
+			while (std::getline(part_vals, part, '\t'))
 			{
-				if(part.find('=')==std::string::npos)
+				if(line.find('=')==std::string::npos)
 				{
-					if(part.find("section")==std::string::npos) datapts.at(0)=std::stof(part)/10;
+					if(line.find("section")==std::string::npos)
+					{
+						try{
+							datapts.at(0)=std::stof(part)/10;
+						}
+						catch(std::exception& e){}
+					}
 					else
 					{
-						std::stringstream firstline(part), further;
+						//std::cout<<"hello this line is " <<line <<std::endl;
+						std::stringstream firstline(line), further;
 						std::string subpart, subsub;
+						int i=0;
 						while(std::getline(firstline, subpart, '\t'))
 						{
+							i++;
 							if (subpart.find("section")!=std::string::npos)
 							{
 								further<<subpart;
-								while(std::getline(further, subsub, ' ')){
-									if(subsub.find("s")==std::string::npos && subsub.find("p")==std::string::npos && subsub.find("+")==std::string::npos) fixed.at(1)=std::stof(subsub);
+								while(std::getline(further, subsub, ':')){
+									if(subsub.find("s")==std::string::npos)
+									{
+										//std::cout<<subsub<<std::endl;
+										fixed.at(1)=std::stof(subsub);
+										//std::cout<<fixed.at(1)<<std::endl;
+									}
 								}
 							}
-							if (subpart.find("ctG")!= std::string::npos)
+							if (i==2)
 							{
-								further<<subpart;
-								while(getline(further, subsub, ' ')){
-									if(subsub.find("ctG")==std::string::npos && subsub != "24") fixed.at(1)= std::stof(subsub);
+								std::stringstream furthers(subpart);
+								std::string ss;
+								while(getline(furthers, ss, '#')){
+									std::stringstream fs(ss);
+									std::string s;
+									while(getline(fs, s, ' ')){
+										if(s.find("ctG")==std::string::npos && s.find("#")== std::string::npos&& s.find(".")!=std::string::npos) fixed.at(0)= std::stof(s);
+									}
+									std::cout<<"Value of ctG: " <<fixed.at(0) <<std::endl;
+									if (fixed.at(0) >0 && fixed.at(0) <0.001) fixed.at(0)=0;
 								}
+								
 							}
-							else datapts.at(0)=std::stof(subpart)/10;
+							if (i==3) datapts.at(0)=std::stof(subpart)/10;
 						}
 					}
 				}
@@ -61,14 +84,19 @@ std::pair< std::vector<float>, std::vector < std::vector<float> > > get_vals_of_
 					if (part.find("ttZ") !=std::string::npos)
 					{
 						subpart<<part;
-						if(getline(subpart, sub, '=') && sub.find("(")==std::string::npos) datapts.at(1)=std::stof(sub);
+						while(getline(subpart, sub, '=')){
+							if( sub.find("(")==std::string::npos) datapts.at(1)=std::stof(sub);
+						}
 					}
 				
 
 					if (part.find("lab") !=std::string::npos)
 					{
 						subpart<<part;
-						if(getline(subpart, sub, '=') && sub.find("(")==std::string::npos) datapts.at(2)=std::stof(sub);
+						//std::cout<<"this is a lab" <<std::endl;
+						while(getline(subpart, sub, '=')){
+							if( sub.find("(")==std::string::npos) datapts.at(2)=std::stof(sub);
+						}
 						ready_to_read=true;
 					}
 				}
@@ -79,8 +107,11 @@ std::pair< std::vector<float>, std::vector < std::vector<float> > > get_vals_of_
 				ready_to_read=false;
 			}
 		}
+		}
+		catch(std::exception& e ){ }
 	}
 	std::pair < std::vector<float>, std::vector<std::vector <float>>> datap (fixed, data);
+	std::cout<< datap.first.at(0) <<std::endl;
 	return datap;
 }
 std::vector < std::pair < std::string, std::vector < std::vector<float> > > > rearange_data (std::vector < std::pair < std::vector<float>, std::vector <std::vector<float> > > >data)
@@ -132,9 +163,11 @@ void make_graphs ( std::vector <std::pair<std::string, std::vector<std::vector<f
 		for (int i =0; i<data.at(j).second.size(); i++)
 		{
 			std::vector<float> d = data.at(j).second.at(i);
-			xsec->SetBinContent(i, d.at(1)/ref_vals.at(1));
-			b4_ttZ->SetBinContent(i, d.at(2)/ref_vals.at(2));
-			b4_lab->SetBinContent(i, d.at(3)/ref_vals.at(3));
+			int ctg=d.at(0)*10;
+			int bin= 11+ctg;
+			xsec->SetBinContent(bin, d.at(1)/ref_vals.at(1));
+			b4_ttZ->SetBinContent(bin, d.at(2)/ref_vals.at(2));
+			b4_lab->SetBinContent(bin, d.at(3)/ref_vals.at(3));
 		}
 		xsec->Write();
 		b4_ttZ->Write();
@@ -143,13 +176,17 @@ void make_graphs ( std::vector <std::pair<std::string, std::vector<std::vector<f
 }
 int main(int argc, char** argv)
 {
-	std::fstream input_filenames;
-	input_filenames.open(argv[1]);
+	std::ifstream input_filenames;
+	input_filenames.open("fnames.txt");
+	if (!input_filenames.is_open()) std::cout<<"failed to get list of files" <<std::endl;
 	std::vector < std::string> data_files;
 	std::string line;
 	while(input_filenames.is_open() && !input_filenames.eof() )
 	{
-		while(getline(input_filenames, line)) data_files.push_back(line);
+		while(getline(input_filenames, line))
+		{
+			 data_files.push_back(line);
+		}
 		//data_files.back.open(line);
 	}	
 	std::vector <std::pair < std::vector<float>, std::vector<std::vector<float>>>> data_from_files;

@@ -21,6 +21,8 @@ do
 	rm temp1.txt temp2.txt tresults.txt
 done
 sudo rm ~/ctG_runs/*.dat
+ls *.txt > fnames.txt
+./ra
 	#implement the asymmetry analysis
 	#need to extract the value for ctG somehow
 	#look for value from param card?
