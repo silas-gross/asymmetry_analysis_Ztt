@@ -70,7 +70,7 @@ std::pair< std::vector<float>, std::vector < std::vector<float> > > get_vals_of_
 									while(getline(fs, s, ' ')){
 										if(s.find("ctG")==std::string::npos && s.find("#")== std::string::npos&& s.find(".")!=std::string::npos) fixed.at(0)= std::stof(s);
 									}
-									std::cout<<"Value of ctG: " <<fixed.at(0) <<std::endl;
+								//	std::cout<<"Value of ctG: " <<fixed.at(0) <<std::endl;
 									if (fixed.at(0) >0 && fixed.at(0) <0.001) fixed.at(0)=0;
 								}
 								
@@ -111,13 +111,14 @@ std::pair< std::vector<float>, std::vector < std::vector<float> > > get_vals_of_
 		catch(std::exception& e ){ }
 	}
 	std::pair < std::vector<float>, std::vector<std::vector <float>>> datap (fixed, data);
-	std::cout<< datap.first.at(0) <<std::endl;
+	std::cout<<"CtG value is " <<fixed.at(0)<<std::endl;
 	return datap;
 }
 std::vector < std::pair < std::string, std::vector < std::vector<float> > > > rearange_data (std::vector < std::pair < std::vector<float>, std::vector <std::vector<float> > > >data)
 {
 	std::vector <std::pair < std::string, std::vector<std::vector<float>> > > vals (data.at(0).second.size()); //needs to go ttZ then lab then xsec, finaly the val of the pit of interest
-	std::vector < std::vector<std::vector<float> > > dummy (data.at(0).second.size());
+	std::vector < std::vector<std::vector<float> > > dummy (data.at(0).second.size()); //each top level vector in here is all ctG values at a single asympt
+	std::vector <std::vector <float> > ctgval(data.size()); //this will hold the single values
 	
 	for (int i =0; i<data.size(); i++)
 	{
@@ -130,10 +131,13 @@ std::vector < std::pair < std::string, std::vector < std::vector<float> > > > re
 			val.at(1)=xsec;
 			val.at(2)=data.at(i).second.at(j).at(1);
 			val.at(3)=data.at(i).second.at(j).at(2);
-			dummy.at(j).push_back(val);
+			int asymval=data.at(i).second.at(j).at(0)*10;
+			int asymnumb=9+asymval;			
+			int numb=10+ctg*10; //this is not working right now (sat morning midnight-will come back and fix after splash)
 		}
+		dummy.at(i)=vals;
 	}
-	for (int i=0; i<dummy.size(); i++)
+	for (int i=0; i<data.at(0).second.size(); i++)
 	{
 		std::string asympt=std::to_string(data.at(0).second.at(i).at(0));
 		std::pair <std::string, std::vector <std::vector<float> > > p;
@@ -165,9 +169,9 @@ void make_graphs ( std::vector <std::pair<std::string, std::vector<std::vector<f
 			std::vector<float> d = data.at(j).second.at(i);
 			int ctg=d.at(0)*10;
 			int bin= 11+ctg;
-			xsec->SetBinContent(bin, d.at(1)/ref_vals.at(1));
-			b4_ttZ->SetBinContent(bin, d.at(2)/ref_vals.at(2));
-			b4_lab->SetBinContent(bin, d.at(3)/ref_vals.at(3));
+			xsec->SetBinContent(i, d.at(1)/ref_vals.at(1));
+			b4_ttZ->SetBinContent(i, d.at(2)/ref_vals.at(2));
+			b4_lab->SetBinContent(i, d.at(3)/ref_vals.at(3));
 		}
 		xsec->Write();
 		b4_ttZ->Write();
@@ -181,7 +185,7 @@ int main(int argc, char** argv)
 	if (!input_filenames.is_open()) std::cout<<"failed to get list of files" <<std::endl;
 	std::vector < std::string> data_files;
 	std::string line;
-	while(input_filenames.is_open() && !input_filenames.eof() )
+	while(input_filenames.is_open() && !input_filenames.eof())
 	{
 		while(getline(input_filenames, line))
 		{
@@ -200,15 +204,20 @@ int main(int argc, char** argv)
 	f->Write();
 	f->Close();
 	std::ofstream output("data_from_ctG_asymm_sweep.csv");
-	output<<"Asymmetry value , ctG value, Ab4(ttZ), Ab4(lab), xsec" <<std::endl;
+	output<<"Asymmetry value , ctG value, Ab4(ttZ), Ab4(lab), xsec, Ab4(ttZ) [norm], Ab4(lab)[norm], xsec [norm]" <<std::endl;
+		
 	for(int i=0; i<data_to_output.size(); i++)
 	{
 		std::string as=data_to_output.at(i).first;
+		try{
 		for (int j=0; j< data_to_output.at(i).second.size(); j++)
 		{
 			auto d = data_to_output.at(i).second.at(j);
-			output << as <<"," <<d.at(0) <<"," << d.at(2) <<"," <<d.at(3) <<"," <<d.at(1) <<std::endl;
+			output << as <<"," <<d.at(0) <<"," << d.at(2) <<"," <<d.at(3) <<"," <<d.at(1) <<",";
+		//	output<< d.at(2)/atz <<"," <<d.at(3)/al <<"," <<d.at(1)/xn  <<std::endl;
 		}
+		}
+		catch(std::exception& e){std::cout<<"failed at a thing" <<std::endl;}
 	}
 	output.close();
 	return 0;

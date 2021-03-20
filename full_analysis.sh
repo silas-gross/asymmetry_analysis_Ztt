@@ -22,9 +22,4 @@ do
 done
 sudo rm ~/ctG_runs/*.dat
 ls *.txt > fnames.txt
-./ra
-	#implement the asymmetry analysis
-	#need to extract the value for ctG somehow
-	#look for value from param card?
-#forget this, doing this part in the c++ file instead, way easier	
 
