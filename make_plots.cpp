@@ -111,15 +111,14 @@ std::pair< std::vector<float>, std::vector < std::vector<float> > > get_vals_of_
 		catch(std::exception& e ){ }
 	}
 	std::pair < std::vector<float>, std::vector<std::vector <float>>> datap (fixed, data);
-	std::cout<<"CtG value is " <<fixed.at(0)<<std::endl;
 	return datap;
 }
 std::vector < std::pair < std::string, std::vector < std::vector<float> > > > rearange_data (std::vector < std::pair < std::vector<float>, std::vector <std::vector<float> > > >data)
 {
 	std::vector <std::pair < std::string, std::vector<std::vector<float>> > > vals (data.at(0).second.size()); //needs to go ttZ then lab then xsec, finaly the val of the pit of interest
-	std::vector < std::vector<std::vector<float> > > dummy (data.at(0).second.size()); //each top level vector in here is all ctG values at a single asympt
+	std::vector < std::vector<std::vector<float> > > dummy (data.at(0).second.size(), std::vector<std::vector<float>>(data.size())); //each top level vector in here is all ctG values at a single asympt
 	std::vector <std::vector <float> > ctgval(data.size()); //this will hold the single values
-	
+		
 	for (int i =0; i<data.size(); i++)
 	{
 		float ctg=data.at(i).first.at(0);
@@ -132,11 +131,13 @@ std::vector < std::pair < std::string, std::vector < std::vector<float> > > > re
 			val.at(2)=data.at(i).second.at(j).at(1);
 			val.at(3)=data.at(i).second.at(j).at(2);
 			int asymval=data.at(i).second.at(j).at(0)*10;
-			int asymnumb=9+asymval;			
-			int numb=10+ctg*10; //this is not working right now (sat morning midnight-will come back and fix after splash)
+			int asymnumb=9+asymval;
+			int ctgnumb=ctg*1 +9;			
+			dummy.at(asymnumb).at(ctgnumb)=val;
+//			std::cout<< "for element aysm=" <<asymval <<" ctg =" <<ctgnumb <<"dummy has size " <<dummy.at(asymnumb).at(ctgnumb).size() <<std::endl;
 		}
-		dummy.at(i)=vals;
 	}
+	std::cout<<"why ?" <<dummy[11][2].size() <<std::endl; //so this is the problem, dummy is reseting to zero and I dont know why?
 	for (int i=0; i<data.at(0).second.size(); i++)
 	{
 		std::string asympt=std::to_string(data.at(0).second.at(i).at(0));
@@ -161,11 +162,13 @@ void make_graphs ( std::vector <std::pair<std::string, std::vector<std::vector<f
 		std::vector<float> ref_vals(4);
 		for (int i=0; i <data.at(j).second.size(); i++)
 		{
+			if(data.at(j).second.at(i).size()==0) continue;
 			if (data.at(j).second.at(i).at(0)==0) ref_vals=data.at(j).second.at(i);
 			else continue;
 		}
 		for (int i =0; i<data.at(j).second.size(); i++)
 		{
+			if(data.at(j).second.at(i).size()==0) continue;
 			std::vector<float> d = data.at(j).second.at(i);
 			int ctg=d.at(0)*10;
 			int bin= 11+ctg;
@@ -200,9 +203,11 @@ int main(int argc, char** argv)
 	}
 	TFile* f= new TFile("all_data.root", "RECREATE");
 	auto data_to_output=rearange_data(data_from_files);
+	std::cout<<"THISSSS: " <<data_to_output.size()<<"," <<data_to_output[1].second.size() <<" test value" <<data_to_output[1].second[2].size() <<std::endl;
 	make_graphs(data_to_output);
 	f->Write();
 	f->Close();
+	std::cout<<"root files are made"<<std::endl;
 	std::ofstream output("data_from_ctG_asymm_sweep.csv");
 	output<<"Asymmetry value , ctG value, Ab4(ttZ), Ab4(lab), xsec, Ab4(ttZ) [norm], Ab4(lab)[norm], xsec [norm]" <<std::endl;
 		
