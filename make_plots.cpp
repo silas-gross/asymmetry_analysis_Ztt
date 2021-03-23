@@ -117,27 +117,43 @@ std::vector < std::pair < std::string, std::vector < std::vector<float> > > > re
 {
 	std::vector <std::pair < std::string, std::vector<std::vector<float>> > > vals (data.at(0).second.size()); //needs to go ttZ then lab then xsec, finaly the val of the pit of interest
 	std::vector < std::vector<std::vector<float> > > dummy (data.at(0).second.size(), std::vector<std::vector<float>>(data.size())); //each top level vector in here is all ctG values at a single asympt
-	std::vector <std::vector <float> > ctgval(data.size()); //this will hold the single values
+	std::vector<std::vector<float>> all_vals; 
 		
 	for (int i =0; i<data.size(); i++)
 	{
 		float ctg=data.at(i).first.at(0);
 		float xsec=data.at(i).first.at(1);
-		std::vector<float> val(4);
 		for(int j=0; j<data.at(i).second.size(); j++)
 		{
-			val.at(0)=ctg; 
-			val.at(1)=xsec;
-			val.at(2)=data.at(i).second.at(j).at(1);
-			val.at(3)=data.at(i).second.at(j).at(2);
+			std::vector<float> val;
+			float atz=data.at(i).second.at(j).at(1), al=data.at(i).second.at(j).at(2);
 			int asymval=data.at(i).second.at(j).at(0)*10;
-			int asymnumb=9+asymval;
-			int ctgnumb=ctg*1 +9;			
-			dummy.at(asymnumb).at(ctgnumb)=val;
+			val.push_back(asymval);
+			val.push_back(ctg);
+			val.push_back(xsec);
+			val.push_back(atz);
+			val.push_back(al);
+			all_vals.push_back(val);
+	//		val.delete();
 //			std::cout<< "for element aysm=" <<asymval <<" ctg =" <<ctgnumb <<"dummy has size " <<dummy.at(asymnumb).at(ctgnumb).size() <<std::endl;
 		}
+		//std::cout<<"is it empty at asym of 0? " <<dummy.at(0).at(i).size() <<std::endl;
 	}
-	std::cout<<"why ?" <<dummy[11][2].size() <<std::endl; //so this is the problem, dummy is reseting to zero and I dont know why?
+//	std::cout<<"why ?" <<all_vals[2].size() <<std::endl; //so this is the problem, dummy is reseting to zero and I dont know why?
+	for(int i=0; i<all_vals.size(); i++)
+	{
+		int abin=all_vals[i][0];
+		int ctgbin=all_vals[i][1]*10+10;
+		abin=abin+9;
+		if(abin > dummy.size() || ctgbin >data.size() ) std::cout<<"there is a problem wiht values " <<abin <<" , " <<ctgbin <<std::endl;
+		std::vector<float> sval(4);
+		sval[0]= all_vals[i][1];
+		sval[1]= all_vals[i][2];
+		sval[2]= all_vals[i][3];
+		sval[3]= all_vals[i][4];
+		dummy.at(abin).at(ctgbin)=sval;
+	}
+	std::cout<<"is this working? " <<dummy[1][2].size() <<std::endl;
 	for (int i=0; i<data.at(0).second.size(); i++)
 	{
 		std::string asympt=std::to_string(data.at(0).second.at(i).at(0));
@@ -214,12 +230,13 @@ int main(int argc, char** argv)
 	for(int i=0; i<data_to_output.size(); i++)
 	{
 		std::string as=data_to_output.at(i).first;
+		float xn=data_to_output.at(i).second.at(10).at(1), atz=data_to_output.at(i).second.at(10).at(2), al=data_to_output.at(i).second.at(10).at(3);
 		try{
 		for (int j=0; j< data_to_output.at(i).second.size(); j++)
 		{
 			auto d = data_to_output.at(i).second.at(j);
 			output << as <<"," <<d.at(0) <<"," << d.at(2) <<"," <<d.at(3) <<"," <<d.at(1) <<",";
-		//	output<< d.at(2)/atz <<"," <<d.at(3)/al <<"," <<d.at(1)/xn  <<std::endl;
+			output<< d.at(2)/atz <<"," <<d.at(3)/al <<"," <<d.at(1)/xn  <<std::endl;
 		}
 		}
 		catch(std::exception& e){std::cout<<"failed at a thing" <<std::endl;}
