@@ -8,7 +8,10 @@
 #include <utility>
 #include "/home/silas/root/include/TH1.h"
 #include "/home/silas/root/include/TFile.h"
-
+#include "/home/silas/root/include/TLegend.h"
+#include "/home/silas/root/include/TCanvas.h"
+#include "/home/silas/root/include/TStyle.h"
+#include "/home/silas/root/include/TPaveText.h"
 
 std::pair< std::vector<float>, std::vector < std::vector<float> > > get_vals_of_Ab4 (std::string name)
 {
@@ -113,9 +116,9 @@ std::pair< std::vector<float>, std::vector < std::vector<float> > > get_vals_of_
 	std::pair < std::vector<float>, std::vector<std::vector <float>>> datap (fixed, data);
 	return datap;
 }
-std::vector < std::pair < std::string, std::vector < std::vector<float> > > > rearange_data (std::vector < std::pair < std::vector<float>, std::vector <std::vector<float> > > >data)
+std::vector < std::pair < float, std::vector < std::vector<float> > > > rearange_data (std::vector < std::pair < std::vector<float>, std::vector <std::vector<float> > > >data)
 {
-	std::vector <std::pair < std::string, std::vector<std::vector<float>> > > vals (data.at(0).second.size()); //needs to go ttZ then lab then xsec, finaly the val of the pit of interest
+	std::vector <std::pair < float, std::vector<std::vector<float>> > > vals (data.at(0).second.size()); //needs to go ttZ then lab then xsec, finaly the val of the pit of interest
 	std::vector < std::vector<std::vector<float> > > dummy (data.at(0).second.size(), std::vector<std::vector<float>>(data.size())); //each top level vector in here is all ctG values at a single asympt
 	std::vector<std::vector<float>> all_vals; 
 		
@@ -145,6 +148,7 @@ std::vector < std::pair < std::string, std::vector < std::vector<float> > > > re
 		int abin=all_vals[i][0];
 		int ctgbin=all_vals[i][1]*10+10;
 		abin=abin+9;
+		std::cout<<"Bins are " <<abin <<",  and ctgbin " <<ctgbin <<"with ctgval " <<all_vals[i][1] <<std::endl;
 		if(abin > dummy.size() || ctgbin >data.size() ) std::cout<<"there is a problem wiht values " <<abin <<" , " <<ctgbin <<std::endl;
 		std::vector<float> sval(4);
 		sval[0]= all_vals[i][1];
@@ -156,9 +160,9 @@ std::vector < std::pair < std::string, std::vector < std::vector<float> > > > re
 	std::cout<<"is this working? " <<dummy[1][2].size() <<std::endl;
 	for (int i=0; i<data.at(0).second.size(); i++)
 	{
-		std::string asympt=std::to_string(data.at(0).second.at(i).at(0));
-		std::pair <std::string, std::vector <std::vector<float> > > p;
-		p.first=asympt;
+		//std::string asympt=std::to_string(data.at(0).second.at(i).at(0));
+		std::pair <float, std::vector <std::vector<float> > > p;
+		p.first=data.at(0).second.at(i).at(0);
 		p.second=dummy.at(i);
 		vals.at(i)= p;
 	}
@@ -166,15 +170,28 @@ std::vector < std::pair < std::string, std::vector < std::vector<float> > > > re
 }
 		
 	
-void make_graphs ( std::vector <std::pair<std::string, std::vector<std::vector<float>> > > data)
+void make_graphs ( std::vector <std::pair<float, std::vector<std::vector<float>> > > data)
 {
+	TCanvas* c=new TCanvas();
+	TLegend* l=new TLegend();
+	gStyle->SetOptTitle(0);
+	gStyle->SetOptStat(0);
+	TPaveText* t = new TPaveText(0, 0.9, 1,1, "NB");
+	t->AddText("Asymmetry Samples on b4 in the ttZ frame");
+	t->Draw(); 
+	l->SetHeader("Asymmetries (normalized in respect to SM) in b4 in ttZ frame", "C");
 	for(int j=0; j<data.size(); j++){
-		std::string namet="b4_tt_Z_"+data.at(j).first, titlet="Asymmetery on b4 (ttZ) around "+data.at(j).first;
-		std::string namel="b4_lab_"+data.at(j).first, titlel="Asymmetery on b4 (lab) around "+data.at(j).first;
+		int asval=data.at(j).first*10;
+		std::string d, d1= std::to_string(data.at(j).first);
+		if(asval<0) d="ctG_minus_" + std::to_string(asval);
+		if(asval==0) d="sm";
+		if(asval>0) d="ctG_plus_" + std::to_string(asval);
+		std::string namet="b4_tt_Z_"+d, titlet="Asymmetery on b4 (ttZ) around "+d1;
+		std::string namel="b4_lab_"+d, titlel="Asymmetery on b4 (lab) around "+d1;
 		TH1F* b4_ttZ = new TH1F(namet.c_str(),titlet.c_str(), 21, -1, 1);
 		TH1F* b4_lab=new TH1F(namel.c_str(), titlel.c_str(), 21, -1, 1);
-		std::string xs="xsec"+data.at(j).first;
-		TH1F* xsec=new TH1F (xs.c_str(), "Cross Section", 21, -1, 1);
+		//std::string xs="xsec"+data.at(j).first;
+		TH1F* xsec=new TH1F ("xsec", "Cross Section", 21, -1, 1);
 		std::vector<float> ref_vals(4);
 		for (int i=0; i <data.at(j).second.size(); i++)
 		{
@@ -186,16 +203,27 @@ void make_graphs ( std::vector <std::pair<std::string, std::vector<std::vector<f
 		{
 			if(data.at(j).second.at(i).size()==0) continue;
 			std::vector<float> d = data.at(j).second.at(i);
-			int ctg=d.at(0)*10;
-			int bin= 11+ctg;
-			xsec->SetBinContent(i, d.at(1)/ref_vals.at(1));
-			b4_ttZ->SetBinContent(i, d.at(2)/ref_vals.at(2));
-			b4_lab->SetBinContent(i, d.at(3)/ref_vals.at(3));
+			int ctg=d.at(0);
+			xsec->SetBinContent(i+1, d.at(1)/ref_vals.at(1));
+			b4_ttZ->SetBinContent(i+1, d.at(2)/ref_vals.at(2));
+			b4_lab->SetBinContent(i+1, d.at(3)/ref_vals.at(3));
 		}
-		xsec->Write();
+		xsec->GetXaxis()->SetTitle("ctG");
+		xsec->GetYaxis()->SetTitle("Normalized to 1");
+		xsec->SetLineWidth(7);
+		if(j==2) xsec->Write();
 		b4_ttZ->Write();
 		b4_lab->Write();
-	}	 
+		if (j==0) xsec->Draw("c");
+		if(j%5==0){
+		b4_ttZ->SetLineColor(j+1);
+		b4_ttZ->Draw("same c");
+		}
+		if(j==0) l->AddEntry(xsec, "Cross Section for process");
+		if(j%5==0) l->AddEntry(b4_ttZ);
+	}
+	l->Draw();	 
+	c->Print("b4_ttZ_graphs.pdf");
 }
 int main(int argc, char** argv)
 {
@@ -219,7 +247,6 @@ int main(int argc, char** argv)
 	}
 	TFile* f= new TFile("all_data.root", "RECREATE");
 	auto data_to_output=rearange_data(data_from_files);
-	std::cout<<"THISSSS: " <<data_to_output.size()<<"," <<data_to_output[1].second.size() <<" test value" <<data_to_output[1].second[2].size() <<std::endl;
 	make_graphs(data_to_output);
 	f->Write();
 	f->Close();
@@ -229,7 +256,7 @@ int main(int argc, char** argv)
 		
 	for(int i=0; i<data_to_output.size(); i++)
 	{
-		std::string as=data_to_output.at(i).first;
+		std::string as=std::to_string(data_to_output.at(i).first);
 		float xn=data_to_output.at(i).second.at(10).at(1), atz=data_to_output.at(i).second.at(10).at(2), al=data_to_output.at(i).second.at(10).at(3);
 		try{
 		for (int j=0; j< data_to_output.at(i).second.size(); j++)
